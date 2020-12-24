@@ -40,15 +40,24 @@ function Board() {
     }
 
     function checkWin(playerNum, rowNum, colNum) {
-        const offset1 = Math.min(rowNum, colNum);
-        const offset2 = Math.min(rowNum, COL_NUM - 1 - colNum);
+        const incr = i => i + 1;
+        const decr = i => i - 1;
+        const stay = i => i;
         const win = [
-            {rowIter: iter(rowNum, i => i),                     colIter: iter(0, i => i + 1)},
-            {rowIter: iter(0, i => i + 1),                colIter: iter(colNum, i => i)},
-            {rowIter: iter(rowNum - offset1, i => i + 1), colIter: iter(colNum - offset1, i => i + 1)},
-            {rowIter: iter(rowNum - offset2, i => i + 1), colIter: iter(colNum + offset2, i => i - 1)}
+            {
+                dir1: {rows: iter(rowNum, stay), cols: iter(colNum, incr)},
+                dir2: {rows: iter(rowNum, stay), cols: iter(colNum, decr)}},
+            {
+                dir1: {rows: iter(rowNum, incr), cols: iter(colNum, stay)},
+                dir2: {rows: iter(rowNum, decr), cols: iter(colNum, stay)}},
+            {
+                dir1: {rows: iter(rowNum, incr), cols: iter(colNum, incr)},
+                dir2: {rows: iter(rowNum, decr), cols: iter(colNum, decr)}},
+            {
+                dir1: {rows: iter(rowNum, decr), cols: iter(colNum, incr)},
+                dir2: {rows: iter(rowNum, incr), cols: iter(colNum, decr)}}
         ].some(iters => {
-            return checkRow(iters.rowIter, iters.colIter, playerNum);
+            return checkRow(iters, playerNum);
         });
 
         if (win) return playerNum;
@@ -58,27 +67,33 @@ function Board() {
     function* iter(initial, f) {
         let i = initial;
         while (true) {
-            yield i;
             i = f(i);
+            yield i;
         }
     }
 
-    function checkRow(rowIterator, colIterator, playerNum) {
-        let count = 0;
-        let row = rowIterator.next().value;
-        let col = colIterator.next().value;
-        while(row >= 0 && row < ROW_NUM && col >= 0 && col < COL_NUM) {
-            if (board[row][col] == playerNum) {
-                count += 1;
-                if (count == MAX_IN_A_ROW) return true;
-            }
-            else {
-                count = 0;
-            }
-            row = rowIterator.next().value;
-            col = colIterator.next().value;
-        }
+    function checkRow(iters, playerNum) {
+        const dir1 = iters.dir1;
+        let target = getCount(dir1.rows, dir1.cols, playerNum, MAX_IN_A_ROW - 1);
+        if (target === 0) return true;
+        const dir2 = iters.dir2;
+        target = getCount(dir2.rows, dir2.cols, playerNum, target);
+        if (target === 0) return true;
         return false;
+    }
+
+    function getCount(rowIter, colIter, playerNum, target) {
+        let count = target;
+        let row = rowIter.next().value;
+        let col = colIter.next().value;
+        while(row >= 0 && row < ROW_NUM && col >= 0 && col < COL_NUM) {
+            if (board[row][col] != playerNum) return count;
+            count -= 1;
+            if (count === 0) return count;
+            row = rowIter.next().value;
+            col = colIter.next().value;
+        }
+        return count;
     }
 
     this.printBoard = function() {
