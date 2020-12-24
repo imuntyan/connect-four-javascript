@@ -45,17 +45,17 @@ function Board() {
         const stay = i => i;
         const win = [
             {
-                dir1: {rows: iter(rowNum, stay), cols: iter(colNum, incr)},
-                dir2: {rows: iter(rowNum, stay), cols: iter(colNum, decr)}},
+                dir1: iter(rowNum, stay, colNum, incr),
+                dir2: iter(rowNum, stay, colNum, decr)},
             {
-                dir1: {rows: iter(rowNum, incr), cols: iter(colNum, stay)},
-                dir2: {rows: iter(rowNum, decr), cols: iter(colNum, stay)}},
+                dir1: iter(rowNum, incr, colNum, stay),
+                dir2: iter(rowNum, decr, colNum, stay)},
             {
-                dir1: {rows: iter(rowNum, incr), cols: iter(colNum, incr)},
-                dir2: {rows: iter(rowNum, decr), cols: iter(colNum, decr)}},
+                dir1: iter(rowNum, incr, colNum, incr),
+                dir2: iter(rowNum, decr, colNum, decr)},
             {
-                dir1: {rows: iter(rowNum, decr), cols: iter(colNum, incr)},
-                dir2: {rows: iter(rowNum, incr), cols: iter(colNum, decr)}}
+                dir1: iter(rowNum, decr, colNum, incr),
+                dir2: iter(rowNum, incr, colNum, decr)}
         ].some(iters => {
             return checkRow(iters, playerNum);
         });
@@ -64,36 +64,38 @@ function Board() {
         else return undefined;
     }
 
-    function* iter(initial, f) {
-        let i = initial;
+    function* iter(rowInit, rowChange, colInit, colChange) {
+        let row = rowInit;
+        let col = colInit;
         while (true) {
-            i = f(i);
-            yield i;
+            row = rowChange(row);
+            col = colChange(col);
+            yield [row, col];
         }
     }
 
     function checkRow(iters, playerNum) {
         const dir1 = iters.dir1;
-        let target = getCount(dir1.rows, dir1.cols, playerNum, MAX_IN_A_ROW - 1);
+        let target = getCount(dir1, playerNum, MAX_IN_A_ROW - 1);
         if (target === 0) return true;
         const dir2 = iters.dir2;
-        target = getCount(dir2.rows, dir2.cols, playerNum, target);
+        target = getCount(dir2, playerNum, target);
         if (target === 0) return true;
         return false;
     }
 
-    function getCount(rowIter, colIter, playerNum, target) {
+    function getCount(iter, playerNum, target) {
         let count = target;
-        let row = rowIter.next().value;
-        let col = colIter.next().value;
-        while(row >= 0 && row < ROW_NUM && col >= 0 && col < COL_NUM) {
-            if (board[row][col] != playerNum) return count;
+        while(true) {
+            const [row, col] = iter.next().value;
+            if (row < 0 || row >= ROW_NUM || col < 0 || col >= COL_NUM)
+                return count;
+            if (board[row][col] != playerNum)
+                return count;
             count -= 1;
-            if (count === 0) return count;
-            row = rowIter.next().value;
-            col = colIter.next().value;
+            if (count === 0)
+                return count;
         }
-        return count;
     }
 
     this.printBoard = function() {
